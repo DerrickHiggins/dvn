@@ -16,8 +16,8 @@ def evaluate_f1(predictor, features, labels):
         f1 = f1_score(lbl, pred_lbl)
         mean_f.append(f1)
         if idx % 100 == 0:
-            print "%.3f (%d of %d)" % (np.mean(mean_f), idx, len(features))
-    print "%.3f" % (np.mean(mean_f))
+            print("%.3f (%d of %d)" % (np.mean(mean_f), idx, len(features)))
+    print("%.3f" % (np.mean(mean_f)))
     return np.mean(mean_f)
 
 
@@ -26,9 +26,9 @@ def get_bibtex(split='train'):
     assert split in ['train', 'test']
     feature_idx = 1836
     if split == 'test':
-        dataset = arff.load(open('%s/bibtex/bibtex-test.arff' % dir_path, 'rb'))
+        dataset = arff.load(open('%s/bibtex/bibtex-test.arff' % dir_path, 'rt'))
     else:
-        dataset = arff.load(open('%s/bibtex/bibtex-train.arff' % dir_path, 'rb'))
+        dataset = arff.load(open('%s/bibtex/bibtex-train.arff' % dir_path, 'rt'))
 
     data = np.array(dataset['data'], np.int)
 

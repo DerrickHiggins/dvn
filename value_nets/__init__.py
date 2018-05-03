@@ -6,7 +6,7 @@ by Michael Gygli, Mohammad Norouzi, Anelia Angelova
 """
 import sys
 import os
-import Queue
+import queue
 import numpy as np
 import tensorflow as tf
 import threading
@@ -148,7 +148,7 @@ class ValueNetwork(object):
         # Start training
         for epoch in range(0, epochs):
             start = time.time()
-            print 'Starting epoch %d (it: %d)' % (epoch, self.current_step)
+            print('Starting epoch %d (it: %d)' % (epoch, self.current_step))
             sys.stdout.flush()
 
             # Randomize ordeer
@@ -157,9 +157,9 @@ class ValueNetwork(object):
             train_labels = train_labels[order]
 
             # Start threads to fill sample queue
-            queue = self._generator_queue(train_features, train_labels, batch_size)
+            gen_queue = self._generator_queue(train_features, train_labels, batch_size)
             while True:
-                data = queue.get(timeout=10)
+                data = gen_queue.get(timeout=10)
                 if data is not self.sentinel:
                     # Do a training step to learn to corrently score the solution (predicted labels)
                     features, pred_labels, f1_scores = data
@@ -177,7 +177,7 @@ class ValueNetwork(object):
             # store model at the end of each epoch
             if epoch % 10 == 0 and self.saver:
                 self.saver.save(self.sess, '%s/weights' % self.data_dir, global_step=self.current_step)
-            print "Epoch took %.2f seconds" % (time.time() - start)
+            print("Epoch took %.2f seconds" % (time.time() - start))
             sys.stdout.flush()
 
             # Compute validation performance
@@ -195,7 +195,7 @@ class ValueNetwork(object):
 
             if len(f1_scores) > 0:
                 f1_scores = np.array(f1_scores)
-                print 'Validation mean F1: %.3f' % np.mean(f1_scores[:, 1])
+                print('Validation mean F1: %.3f' % np.mean(f1_scores[:, 1]))
                 sys.stdout.flush()
                 summary_str = self.sess.run(self.gt_dist_op, feed_dict={self.gt_scores_pl: f1_scores})
                 if self.val_writer:
@@ -450,10 +450,10 @@ class ValueNetwork(object):
         self.label_summary_op = tf.summary.histogram('predicted_tag_probabilities', self.labels_pl)
 
     def _generator_queue(self, train_features, train_labels, batch_size, num_threads=5):
-        queue = Queue.Queue(maxsize=20)
+        gen_queue = queue.Queue(maxsize=20)
 
         # Build indices queue to ensure unique use of each batch
-        indices_queue = Queue.Queue()
+        indices_queue = queue.Queue()
         for idx in np.arange(0, len(train_features), batch_size):
             indices_queue.put(idx)
 
@@ -467,12 +467,12 @@ class ValueNetwork(object):
 
                     # Generate data (predcited labels and their true performance)
                     pred_labels, f1_scores = self.generate_examples(features, gt_labels, train=True)
-                    queue.put((features, pred_labels, f1_scores))
-            except Queue.Empty:
-                queue.put(self.sentinel)
+                    gen_queue.put((features, pred_labels, f1_scores))
+            except queue.Empty:
+                gen_queue.put(self.sentinel)
 
         for _ in range(num_threads):
             thread = threading.Thread(target=generate)
             thread.start()
 
-        return queue
+        return gen_queue
